@@ -1,4 +1,5 @@
 # turkey-learning
-![image](https://user-images.githubusercontent.com/97229364/163154393-b8255c5e-f254-40cc-9523-e591cbe23f2d.png)
+## A project for noises of nature
+![image](https://cdn.pixabay.com/photo/2018/02/18/19/33/bird-3163222_1280.jpg)
 
 A Machine learning project with turkey sounds
