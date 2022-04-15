@@ -1,5 +1,7 @@
+import keras.metrics
 import numpy as np
 import tensorflow as tf
+import data as dt
 
 
 class TurkeyLearning:
@@ -9,17 +11,19 @@ class TurkeyLearning:
             self.load(load_model_name)
 
     def train(self, training_data, training_labels, epochs, batch_size=None):
+        x_train, x_val, y_train, y_val = dt.split_validation_train(training_data, training_labels)
+        # print(f"x_train {len(x_train)}, y_train {len(y_train)}, x_val {len(x_val)}, y_val {len(y_val)}")
         if batch_size is None:
-            self.model.fit(training_data, training_labels, epochs=epochs)
+            self.model.fit(x_train, y_train, epochs=epochs, validation_data=(x_val, y_val))
         else:
-            self.model.fit(training_data, training_labels, epochs=epochs, batch_size=batch_size)
+            self.model.fit(x_train, y_train, epochs=epochs, validation_data=(x_val, y_val), batch_size=batch_size)
 
     def test(self, test_data, test_labels):
         test_loss, test_acc = self.model.evaluate(test_data, test_labels, verbose=2)
         print('\nTest accuracy:', test_acc)
 
     def predict(self, inputs):
-        return np.argmax(self.probability_model.predict(inputs), axis=-1)
+        return self.model.predict(inputs)
 
     def save(self, name):
         self.model.save_weights(f"save/{name}")
@@ -29,24 +33,15 @@ class TurkeyLearning:
         self.model.load_weights(f"save/{name}")
         print(f"model {name} loaded")
 
-    def _init_models(self, input_shape, hidden_size, dynamic_learning_rate=False):
-        STEPS_PER_EPOCH = 100
+    def _init_models(self, input_shape, hidden_size):
 
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Flatten(input_shape=input_shape),
             tf.keras.layers.Dense(hidden_size, activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2)
+            tf.keras.layers.Dense(1, activation='softmax'),
         ])
 
-        lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
-            0.001,
-            decay_steps=STEPS_PER_EPOCH * 1000,
-            decay_rate=1,
-            staircase=False)
-
-        self.model.compile(optimizer=tf.keras.optimizers.Adam(lr_schedule) if dynamic_learning_rate else 'adam',
-                           loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                           metrics=[tf.metrics.SparseCategoricalAccuracy()])
-
-        self.probability_model = tf.keras.Sequential([self.model, tf.keras.layers.Softmax()])
+        # self.model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.1),loss=tf.keras.losses.BinaryCrossentropy(),metrics=[tf.keras.metrics.AUC(from_logits=True, multi_label=False)])
+        self.model.compile(loss='binary_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), metrics=['accuracy'])
+        # self.model.summary()
